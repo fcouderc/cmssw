@@ -51,6 +51,7 @@
 class L1TCaloUpgradeToGCTConverter : public edm::global::EDProducer<> {
 public:
   explicit L1TCaloUpgradeToGCTConverter(const edm::ParameterSet&);
+  ~L1TCaloUpgradeToGCTConverter() {}
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
@@ -67,5 +68,6 @@ private:
   const int bxMin_;
   const int bxMax_;
 };
+
 
 #endif

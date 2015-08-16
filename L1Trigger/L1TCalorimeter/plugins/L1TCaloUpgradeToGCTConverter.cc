@@ -22,6 +22,9 @@
 using namespace std;
 using namespace edm;
 using namespace l1t;
+using namespace std;
+using namespace edm;
+
 
 L1TCaloUpgradeToGCTConverter::L1TCaloUpgradeToGCTConverter(const ParameterSet& iConfig):
     // register what you consume and keep token for later access:
