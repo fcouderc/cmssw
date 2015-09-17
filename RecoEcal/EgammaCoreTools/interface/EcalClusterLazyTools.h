@@ -57,7 +57,9 @@ class EcalClusterLazyToolsBase {
   float eseffsirir( const reco::SuperCluster &cluster );
   float eseffsixix( const reco::SuperCluster &cluster );
   float eseffsiyiy( const reco::SuperCluster &cluster );
-  
+
+  void basicClusterLocalCoordinates(const reco::BasicCluster &cluster, float &ix, float &iy, bool logWeighted = true );  
+
   //  std::vector<int> flagsexcl_;
   //std::vector<int> severitiesexcl_;
   // const EcalSeverityLevelAlgo *sevLv;

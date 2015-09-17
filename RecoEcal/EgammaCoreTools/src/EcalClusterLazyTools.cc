@@ -31,9 +31,9 @@ EcalClusterLazyToolsBase::EcalClusterLazyToolsBase( const edm::Event &ev, const 
   getTopology( es );
   getEBRecHits( ev );
   getEERecHits( ev );
-  getIntercalibConstants( es );
-  getADCToGeV ( es );
-  getLaserDbService ( es );
+  //  getIntercalibConstants( es );
+  //  getADCToGeV ( es );
+  //  getLaserDbService ( es );
 }
 
 EcalClusterLazyToolsBase::EcalClusterLazyToolsBase( const edm::Event &ev, const edm::EventSetup &es, edm::EDGetTokenT<EcalRecHitCollection> token1, edm::EDGetTokenT<EcalRecHitCollection> token2, edm::EDGetTokenT<EcalRecHitCollection> token3) {
@@ -47,9 +47,9 @@ EcalClusterLazyToolsBase::EcalClusterLazyToolsBase( const edm::Event &ev, const 
   getEBRecHits( ev );
   getEERecHits( ev );
   getESRecHits( ev );
-  getIntercalibConstants( es );
-  getADCToGeV ( es );
-  getLaserDbService ( es );
+  //  getIntercalibConstants( es );
+  //  getADCToGeV ( es );
+  //  getLaserDbService ( es );
 }
 
 EcalClusterLazyToolsBase::~EcalClusterLazyToolsBase()
@@ -151,6 +151,64 @@ const EcalRecHitCollection * EcalClusterLazyToolsBase::getEcalRecHitCollection( 
         return recHits;
 }
 
+
+// get time of basic cluster seed crystal
+void EcalClusterLazyToolsBase::basicClusterLocalCoordinates(const reco::BasicCluster &cluster, float &ix, float &iy, bool logWeighted ) {
+
+  const EcalRecHitCollection *recHits = getEcalRecHitCollection( cluster );
+  std::vector<std::pair<DetId, float> > clRHs = cluster.hitsAndFractions() ;
+  std::vector<std::pair<DetId, float> >::const_iterator clRH = clRHs.begin();
+
+  double etaCl = fabs(cluster.eta());
+  //  double T0 = cluster.seed().subdetId() == EcalBarrel ? 7.4 : ( etaCl < 1.653 ? 3.2 : 1.2 );
+  double W0 = 4.2;
+  //  double X0 = 0.89;
+
+  double eTot = 0;
+  double wTot = 0;
+  ix = 0;
+  iy = 0;
+  /// get the total energy needed for log weighted method
+  for( clRH = clRHs.begin() ; clRH != clRHs.end(); ++clRH ) {
+    EcalRecHitCollection::const_iterator hit = recHits->find( clRH->first ) ;
+    if( hit != recHits->end() && hit->energy() >= 0 )  eTot += hit->energy();
+  }
+  
+  int nEE = 0;
+  int nEB = 0;
+  for( clRH = clRHs.begin() ; clRH != clRHs.end(); ++clRH ){
+    double weight = 0;
+    EcalRecHitCollection::const_iterator hit = recHits->find( clRH->first ) ;
+    if( hit != recHits->end() && hit->energy() >= 0 ) {
+      if( logWeighted ) weight = std::max( 0., W0 + log( hit->energy()/eTot ) );
+      else              weight = hit->energy();
+      
+    }
+    wTot += weight;
+    if( clRH->first.subdetId() == EcalBarrel ) {
+      EBDetId ebdetid(clRH->first); 
+      ix += weight * ebdetid.ieta();
+      iy += weight * ebdetid.iphi();
+      nEB++;
+    } else {
+      EEDetId eedetid(clRH->first); 
+      ix += weight * eedetid.ix();
+      iy += weight * eedetid.iy();
+      nEE++;
+    }
+  }
+  
+  if( wTot > 0.0001 ) {
+    ix /= wTot;
+    iy /= wTot;
+  } else {
+    ix = -9999;
+    iy = -9999;
+  }
+
+  if( nEB != 0 && nEE !=0 ) { ix = iy = -9999; }
+
+}
 
 // get time of basic cluster seed crystal 
 float EcalClusterLazyToolsBase::BasicClusterSeedTime(const reco::BasicCluster &cluster)
