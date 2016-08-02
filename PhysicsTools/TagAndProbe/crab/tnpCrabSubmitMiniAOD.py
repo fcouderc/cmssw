@@ -2,12 +2,12 @@ from CRABClient.UserUtilities import config, getUsernameFromSiteDB
 import sys
 config = config()
 
-submitVersion = "phov2"
-doEleTree = 'doEleID=False'
+submitVersion = "AllIDs_v0"
+doEleTree = 'doEleID=True'
 doPhoTree = 'doPhoID=True'
 doHLTTree = 'doTrigger=False'
 
-mainOutputDir = '/store/group/phys_egamma/tnp/80X/Photons_76Xids/%s' % submitVersion
+mainOutputDir = '/store/group/phys_egamma/tnp/80X/ids/%s' % submitVersion
 
 config.General.transferLogs = False
 
@@ -65,18 +65,27 @@ if __name__ == '__main__':
     submit(config)
 
 
- #   config.General.requestName  = 'ttbar_madgraph'
- #   config.Data.inputDataset    = '/TTJets_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIIFall15MiniAODv2-PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/MINIAODSIM'
- #   submit(config)
-
+    config.General.requestName  = 'ttbar_madgraph'
+    config.Data.inputDataset    = '/TTJets_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIIFall15MiniAODv2-PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/MINIAODSIM'
+    submit(config)
+    
 
     ##### now submit DATA
+    doHLTTree = 'doTrigger=True'
     config.Data.outLFNDirBase = '%s/%s/' % (mainOutputDir,'data')
     config.Data.splitting     = 'LumiBased'
-    config.Data.lumiMask      = 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Cert_271036-275783_13TeV_PromptReco_Collisions16_JSON_NoL1T.txt'
-    config.Data.unitsPerJob   = 100
+    config.Data.lumiMask      = 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Cert_271036-276811_13TeV_PromptReco_Collisions16_JSON.txt'
+    config.Data.unitsPerJob   = 75
     config.JobType.pyCfgParams  = ['isMC=False',doEleTree,doPhoTree,doHLTTree]
 
     config.General.requestName  = '2016_RunB'
     config.Data.inputDataset    = '/SingleElectron/Run2016B-PromptReco-v2/MINIAOD'
+    submit(config)
+
+    config.General.requestName  = '2016_RunC'
+    config.Data.inputDataset    = '/SingleElectron/Run2016C-PromptReco-v2/MINIAOD'
+    submit(config)
+
+    config.General.requestName  = '2016_RunD'
+    config.Data.inputDataset    = '/SingleElectron/Run2016D-PromptReco-v2/MINIAOD'
     submit(config)

@@ -44,6 +44,13 @@ varOptions.register(
     )
 
 varOptions.register(
+    "useCalibEn", True,
+    VarParsing.multiplicity.singleton,
+    VarParsing.varType.bool,
+    "use EGM smearer to calibrate photon and electron energy"
+    )
+
+varOptions.register(
     "isAOD", False,
     VarParsing.multiplicity.singleton,
     VarParsing.varType.bool,
@@ -85,16 +92,18 @@ options['DoPhoID']              = cms.bool( varOptions.doPhoID   )
 
 options['OUTPUTEDMFILENAME']    = 'edmFile.root'
 options['DEBUG']                = cms.bool(False)
-
+options['isMC']                 = cms.bool(False)
+options['EVENTSToPROCESS']      = cms.untracked.VEventRange()
+options['UseCalibEn']           = varOptions.useCalibEn
 
 if (varOptions.isMC):
+    options['isMC']                = cms.bool(True)
     options['OUTPUT_FILE_NAME']    = "TnPTree_mc.root"
     options['TnPPATHS']            = cms.vstring("HLT*")
     options['TnPHLTTagFilters']    = cms.vstring()
     options['TnPHLTProbeFilters']  = cms.vstring()
     options['HLTFILTERTOMEASURE']  = cms.vstring("")
     options['GLOBALTAG']           = 'auto:run2_mc'
-    options['EVENTSToPROCESS']     = cms.untracked.VEventRange()
 else:
     options['OUTPUT_FILE_NAME']    = "TnPTree_data.root"
     options['TnPPATHS']            = cms.vstring("HLT_Ele27_eta2p1_WPLoose_Gsf_v*")
@@ -102,7 +111,6 @@ else:
     options['TnPHLTProbeFilters']  = cms.vstring()
     options['HLTFILTERTOMEASURE']  = cms.vstring("hltEle27erWPLooseGsfTrackIsoFilter")
     options['GLOBALTAG']           = 'auto:run2_data'
-    options['EVENTSToPROCESS']     = cms.untracked.VEventRange()
 
 ###################################################################
 ## Inputs for test
@@ -138,6 +146,37 @@ options['INPUT_FILE_NAME'] = filesData
 if varOptions.isMC:
     options['INPUT_FILE_NAME'] = filesMC
 
+
+###################################################################
+## Init and Load
+###################################################################
+process.load("Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff")
+process.load("Configuration.Geometry.GeometryRecoDB_cff")
+#process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
+process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.load('Configuration.StandardSequences.Services_cff') 
+
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag, options['GLOBALTAG'] , '')
+
+
+process.load('FWCore.MessageService.MessageLogger_cfi')
+
+process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(False) )
+
+process.MessageLogger.cerr.threshold = ''
+process.MessageLogger.cerr.FwkReport.reportEvery = 1000
+
+process.source = cms.Source("PoolSource",
+                            fileNames = options['INPUT_FILE_NAME'],
+                            eventsToProcess = options['EVENTSToPROCESS']
+                            )
+
+process.maxEvents = cms.untracked.PSet( input = options['MAXEVENTS'])
+
+
 ###################################################################
 ## import TnP tree maker pythons and configure for AODs
 ###################################################################
@@ -157,33 +196,9 @@ if not varOptions.isMC:
         isMC = cms.bool(False)
         )
 
+print 'Input electron collection: ', options['ELECTRON_COLL']
+    
 
-###################################################################
-## Init and Load
-###################################################################
-process.load("Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff")
-process.load("Configuration.Geometry.GeometryRecoDB_cff")
-#process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
-
-process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
-process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-
-from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, options['GLOBALTAG'] , '')
-process.load('FWCore.MessageService.MessageLogger_cfi')
-process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
-process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(False) )
-
-process.MessageLogger.cerr.threshold = ''
-process.MessageLogger.cerr.FwkReport.reportEvery = 1000
-
-process.source = cms.Source("PoolSource",
-                            fileNames = options['INPUT_FILE_NAME'],
-                            eventsToProcess = options['EVENTSToPROCESS']
-                            )
-
-process.maxEvents = cms.untracked.PSet( input = options['MAXEVENTS'])
 
 ###################################################################
 ## ID
@@ -194,13 +209,14 @@ egmEleID.setIDs(process, options)
 egmPhoID.setIDs(process, options)
 process.egmGsfElectronIDs.physicsObjectSrc = cms.InputTag(options['ELECTRON_COLL'])
 process.egmPhotonIDs.physicsObjectSrc      = cms.InputTag(options['PHOTON_COLL'])
+        
 
 
 ###################################################################
 ## SEQUENCES
 ###################################################################
 tnpTreeMaker.setSequences(process,options)
-process.cand_sequence = cms.Sequence( process.tag_sequence )
+process.cand_sequence = cms.Sequence( process.init_sequence + process.tag_sequence )
 
 if (options['DoEleID']):
     process.cand_sequence += process.ele_sequence
@@ -250,10 +266,11 @@ process.GsfElectronToTrigger = cms.EDAnalyzer("TagProbeFitTreeProducer",
                                               tnpVars.CommonStuffForGsfElectronProbe, tnpVars.mcTruthCommonStuff,
                                               tagProbePairs = cms.InputTag("tagTightHLT"),
                                               arbitration   = cms.string("HighestPt"),
-                                              flags         = cms.PSet(passingHLT    = cms.InputTag("goodElectronsMeasureHLT"),
-                                                                       passingLoose  = cms.InputTag("goodElectronsPROBECutBasedLoose"),
-                                                                       passingMedium = cms.InputTag("goodElectronsPROBECutBasedMedium"),
-                                                                       passingTight  = cms.InputTag("goodElectronsPROBECutBasedTight")
+                                              flags         = cms.PSet(passingHLT     = cms.InputTag("goodElectronsMeasureHLT"),
+                                                                       passingLoose   = cms.InputTag("goodElectronsPROBECutBasedLoose"),
+                                                                       passingMedium  = cms.InputTag("goodElectronsPROBECutBasedMedium"),
+                                                                       passingTight   = cms.InputTag("goodElectronsPROBECutBasedTight"),
+                                                                       passingHLTsafe = cms.InputTag("goodElectronsPROBEHLTsafe"),
                                                                        ),                                               
                                               allProbes     = cms.InputTag("goodElectronsProbeMeasureHLT"),
                                               )
@@ -271,10 +288,11 @@ process.GsfElectronToEleID = cms.EDAnalyzer("TagProbeFitTreeProducer",
                                             tnpVars.mcTruthCommonStuff, tnpVars.CommonStuffForGsfElectronProbe,
                                             tagProbePairs = cms.InputTag("tagTightEleID"),
                                             arbitration   = cms.string("HighestPt"),
-                                            flags         = cms.PSet(passingVeto   = cms.InputTag("goodElectronsPROBECutBasedVeto"),
-                                                                     passingLoose  = cms.InputTag("goodElectronsPROBECutBasedLoose"),
-                                                                     passingMedium = cms.InputTag("goodElectronsPROBECutBasedMedium"),
-                                                                     passingTight  = cms.InputTag("goodElectronsPROBECutBasedTight"),
+                                            flags         = cms.PSet(passingVeto    = cms.InputTag("goodElectronsPROBECutBasedVeto"),
+                                                                     passingLoose   = cms.InputTag("goodElectronsPROBECutBasedLoose"),
+                                                                     passingMedium  = cms.InputTag("goodElectronsPROBECutBasedMedium"),
+                                                                     passingTight   = cms.InputTag("goodElectronsPROBECutBasedTight"),
+                                                                     passingHLTsafe = cms.InputTag("goodElectronsPROBEHLTsafe"),
                                                                      ),                                               
                                             allProbes     = cms.InputTag("goodElectronsProbeHLT"),
                                             )
