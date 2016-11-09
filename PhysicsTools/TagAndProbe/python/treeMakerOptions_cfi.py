@@ -1,5 +1,44 @@
 import FWCore.ParameterSet.Config as cms
 
+
+
+def calibrateEGM(process, options ):
+    process.selectElectronsBase = cms.EDFilter("PATElectronSelector",
+                                               src = cms.InputTag( options['ELECTRON_COLL'] ),
+                                               cut = cms.string(options['ELECTRON_CUTS']),
+                                               filter = cms.bool(True),
+                                               )
+
+    process.selectPhotonsBase   = cms.EDFilter("PATPhotonSelector",
+                                               src = cms.InputTag( options['PHOTON_COLL'] ),
+                                               cut = cms.string(options['PHOTON_CUTS']),
+                                               filter = cms.bool(True),
+                                               )
+
+
+    process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService",
+                                                       calibratedPatElectrons  = cms.PSet( initialSeed = cms.untracked.uint32(81),
+                                                                                           engineName = cms.untracked.string('TRandom3'),                
+                                                                                           ),
+                                                       calibratedPatPhotons    = cms.PSet( initialSeed = cms.untracked.uint32(81),
+                                                                                           engineName = cms.untracked.string('TRandom3'),                
+                                                                                           ),
+                                                       )
+    process.load('EgammaAnalysis.ElectronTools.calibratedElectronsRun2_cfi')
+    process.load('EgammaAnalysis.ElectronTools.calibratedPhotonsRun2_cfi')
+
+
+    process.calibratedPatElectrons.electrons = cms.InputTag('selectElectronsBase')
+    process.calibratedPatPhotons.photons     = cms.InputTag('selectPhotonsBase')
+    if options['isMC']:
+        process.calibratedPatElectrons.isMC = cms.bool(True)
+        process.calibratedPatPhotons.isMC   = cms.bool(True)
+
+    ### change the input collection to be the calibrated energy one for all other modules from now on
+    options['ELECTRON_COLL'] = 'calibratedPatElectrons'
+    options['PHOTON_COLL']   = 'calibratedPatPhotons'
+
+
 def setModules(process, options):
     
     process.sampleInfo = cms.EDProducer("tnp::SampleInfoTree",
@@ -8,7 +47,8 @@ def setModules(process, options):
                                         )
     
     process.eleVarHelper = cms.EDProducer("PatElectronVariableHelper",
-                                          probes = cms.InputTag(options['ELECTRON_COLL']),
+                                          probes           = cms.InputTag(options['ELECTRON_COLL']),
+#                                          l1EGColl         = cms.InputTag('caloStage2Digis:EGamma'),
                                           vertexCollection = cms.InputTag("offlineSlimmedPrimaryVertices")
                                           )
     
@@ -20,10 +60,13 @@ def setModules(process, options):
     from PhysicsTools.TagAndProbe.pileupConfiguration_cfi import pileupProducer
     process.pileupReweightingProducer = pileupProducer.clone()
     
+
+    if options['UseCalibEn']:
+        calibrateEGM( process, options )
+
 ###################################################################                                                                               
 ## Electron/Photon MODULES                                                                                                                                    
-###################################################################                                    
-    
+###################################################################                                        
     process.goodElectrons = cms.EDFilter("PATElectronRefSelector",
                                          src = cms.InputTag( options['ELECTRON_COLL'] ),
                                          cut = cms.string(   options['ELECTRON_CUTS'] )
@@ -132,8 +175,8 @@ def setModules(process, options):
                                            )
     
     process.tagTightEleID = cms.EDProducer("CandViewShallowCloneCombiner",
-                                           decay = cms.string("goodElectronsTagHLT@+ goodElectronsProbeHLT@-"), 
-                                           checkCharge = cms.bool(True),
+                                           decay = cms.string("goodElectronsTagHLT goodElectronsProbeHLT"), 
+                                           checkCharge = cms.bool(False),
                                            cut = cms.string("60<mass<120"),
                                            )
     
@@ -147,15 +190,26 @@ def setSequences(process, options):
 ###################################################################
 ## SEQUENCES
 ###################################################################
+    process.init_sequence = cms.Sequence()
+    if options['UseCalibEn']:
+        process.enCalib_sequence = cms.Sequence(
+            process.selectElectronsBase    +
+            process.selectPhotonsBase      +
+            process.calibratedPatElectrons +
+            process.calibratedPatPhotons   
+            )
+        process.init_sequence += process.enCalib_sequence
+
     process.tag_sequence = cms.Sequence(
         process.goodElectrons                    +
         process.egmGsfElectronIDSequence         +
-        process.goodElectronsTAGCutBasedLoose    +
+        process.goodElectronsTAGCutBasedVeto     +
         process.goodElectronsTAGCutBasedTight    +
         process.goodElectronsTagHLT
         )
 
     process.ele_sequence = cms.Sequence(
+        process.goodElectronsPROBEHLTsafe        +
         process.goodElectronsPROBECutBasedVeto   +
         process.goodElectronsPROBECutBasedLoose  +
         process.goodElectronsPROBECutBasedMedium +
@@ -171,11 +225,13 @@ def setSequences(process, options):
     process.pho_sequence = cms.Sequence(
         process.goodPhotons                    +
         process.egmPhotonIDSequence            +
-        process.photonIDValueMapProducer       +
         process.goodPhotonsPROBECutBasedLoose  +
         process.goodPhotonsPROBECutBasedMedium +
         process.goodPhotonsPROBECutBasedTight  +
         process.goodPhotonsPROBEMVA            +
+        process.goodPhotonsPROBECutBasedLoose80X  +
+        process.goodPhotonsPROBECutBasedMedium80X +
+        process.goodPhotonsPROBECutBasedTight80X  +
         process.goodPhotonsProbeHLT
         )
 

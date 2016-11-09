@@ -195,6 +195,7 @@ def setSequences(process, options):
         process.goodElectronsPROBECutBasedLoose  +
         process.goodElectronsPROBECutBasedMedium +
         process.goodElectronsPROBECutBasedTight  +
+        process.goodElectronsPROBEHLTsafe        +
         process.goodElectronsProbeHLT
         )
 
