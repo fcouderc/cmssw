@@ -57,6 +57,15 @@ varOptions.register(
     "switch to run other AOD (for RECO SFs)"
     )
 
+#### HLTname is HLT2 in reHLT samples
+varOptions.register(
+    "HLTname", "HLT",
+    VarParsing.multiplicity.singleton,
+    VarParsing.varType.string,
+    "HLT process name (default HLT)"
+    )
+
+
 
 varOptions.parseArguments()
 
@@ -68,7 +77,7 @@ varOptions.parseArguments()
 options = dict()
 options['useAOD']               = cms.bool(varOptions.isAOD)
 
-options['HLTProcessName']       = "HLT"
+options['HLTProcessName']       = varOptions.HLTname
 
 ### set input collections
 options['ELECTRON_COLL']        = "slimmedElectrons"

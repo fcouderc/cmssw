@@ -113,7 +113,7 @@ def setModules(process, options):
     process.goodElectronsTagHLT = cms.EDProducer("GsfElectronTriggerCandProducer",
                                                  filterNames = cms.vstring(options['TnPHLTTagFilters']),
                                                  inputs      = cms.InputTag("goodElectronsTAGCutBasedTight"),
-                                                 bits        = cms.InputTag('TriggerResults::HLT'),
+                                                 bits        = cms.InputTag('TriggerResults::' + options['HLTProcessName']),
                                                  objects     = cms.InputTag('hltTriggerSummaryAOD'),
                                                  dR          = cms.double(0.3),
                                                  isAND       = cms.bool(True)
@@ -122,7 +122,7 @@ def setModules(process, options):
     process.goodElectronsProbeHLT = cms.EDProducer("GsfElectronTriggerCandProducer",
                                                    filterNames = cms.vstring(options['TnPHLTProbeFilters']),
                                                    inputs      = cms.InputTag("goodElectrons"),
-                                                   bits        = cms.InputTag('TriggerResults::HLT'),
+                                                   bits        = cms.InputTag('TriggerResults::' + options['HLTProcessName']),
                                                    objects     = cms.InputTag('hltTriggerSummaryAOD'),
                                                    dR          = cms.double(0.3),
                                                    isAND       = cms.bool(True)
@@ -131,7 +131,7 @@ def setModules(process, options):
     process.goodElectronsProbeMeasureHLT = cms.EDProducer("GsfElectronTriggerCandProducer",
                                                           filterNames = cms.vstring(options['TnPHLTProbeFilters']),
                                                           inputs      = cms.InputTag("goodElectrons"),
-                                                          bits        = cms.InputTag('TriggerResults::HLT'),
+                                                          bits        = cms.InputTag('TriggerResults::' + options['HLTProcessName']),
                                                           objects     = cms.InputTag('hltTriggerSummaryAOD'),
                                                           dR          = cms.double(0.3),
                                                           isAND       = cms.bool(True)
@@ -140,7 +140,7 @@ def setModules(process, options):
     process.goodElectronsMeasureHLT = cms.EDProducer("GsfElectronTriggerCandProducer",
                                                      filterNames = cms.vstring(options['HLTFILTERTOMEASURE']),
                                                      inputs      = cms.InputTag("goodElectronsProbeMeasureHLT"),
-                                                     bits        = cms.InputTag('TriggerResults::HLT'),
+                                                     bits        = cms.InputTag('TriggerResults::' + options['HLTProcessName']),
                                                      objects     = cms.InputTag('hltTriggerSummaryAOD'),
                                                      dR          = cms.double(0.3),
                                                      isAND       = cms.bool(False)
@@ -149,7 +149,7 @@ def setModules(process, options):
     process.goodSuperClustersHLT = cms.EDProducer("RecoEcalCandidateTriggerCandProducer",
                                                   filterNames  = cms.vstring(options['TnPHLTProbeFilters']),
                                                   inputs       = cms.InputTag("goodSuperClusters"),
-                                                  bits         = cms.InputTag('TriggerResults::HLT'),
+                                                  bits         = cms.InputTag('TriggerResults::' + options['HLTProcessName']),
                                                   objects      = cms.InputTag('hltTriggerSummaryAOD'),
                                                   dR           = cms.double(0.3),
                                                   isAND        = cms.bool(True)
