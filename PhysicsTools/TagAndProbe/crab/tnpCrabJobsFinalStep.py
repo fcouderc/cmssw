@@ -92,7 +92,7 @@ if checkReport:
     nEvtsRead          = reportOut['numEventsRead']
     lumiProccessedFile = '%s/%s/%s' % (os.getcwd(),dirToCheck,'results/processedLumis.json')
     
-
+sys.exit(0)
 
 ###################################################################
 ##############  hAdd
@@ -102,18 +102,18 @@ outFile = '%s/TnPTree_%s_%s.root' % (outDir,dasDataset,config.General.requestNam
 print 'hadd will be saved to %s ' % outFile
 print ' - if file is moved properly to eos one should remove it (not automated for now)'
 
-haddCommand = ['hadd','-f',outFile]
-haddCommand += filelistOnlyFinished
-
-subprocess.call(haddCommand)
-subprocess.call(['cp',outFile,'eos/cms/%s'%config.Data.outLFNDirBase])
-
 dataset = {}
 dataset['campaign'] = config.General.workArea
-dataset['dataset']  = dasDataset
+dataset['dataset']  = '%s_%s' % ( dasDataset, config.General.requestName )
 dataset['file' ]    = '%s/%s' % (config.Data.outLFNDirBase,os.path.basename(outFile))
 dataset['nEvts']    = nEvtsRead
 dataset['lumiProcessedFile' ]  = lumiProccessedFile
 dataset['lumi' ]    = -1
 print dataset
+
+haddCommand = ['hadd','-f',outFile]
+haddCommand += filelistOnlyFinished
+
+subprocess.call(haddCommand)
+subprocess.call(['cp',outFile,'eos/cms/%s'%config.Data.outLFNDirBase])
 
