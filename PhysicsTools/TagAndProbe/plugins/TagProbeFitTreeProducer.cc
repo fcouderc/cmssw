@@ -158,6 +158,7 @@ TagProbeFitTreeProducer::analyze(const edm::Event& iEvent, const edm::EventSetup
         iEvent.getByToken(probeMatchesToken_, probeMatches);
     }
 
+    
     // get the list of (tag+probe) pairs, performing arbitration
     tnp::TagProbePairs pairs = tagProbePairMaker_.run(iEvent);
     // loop on them to fill the tree
@@ -176,7 +177,7 @@ TagProbeFitTreeProducer::analyze(const edm::Event& iEvent, const edm::EventSetup
         // fill in the variables for this t+p pair
 	if (tagFiller_.get())    tagFiller_->fill(it->tag);
 	if (oldTagFiller_.get()) oldTagFiller_->fill(it->tag);
-	if (pairFiller_.get())   pairFiller_->fill(it->pair);
+ 	if (pairFiller_.get())   pairFiller_->fill(it->pair);
 	treeFiller_->fill(it->probe, it->mass, mcTrue, mcMass);
     }
 
